@@ -61,7 +61,17 @@ const loginUser = async (loginData) => {
   return { user: userResponse, token };
 };
 
+const getMe = async (userId) => {
+  const user = await User.findById(userId).select('-password');
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  return { user };
+};
+
 module.exports = {
   registerUser,
-  loginUser
+  loginUser,
+  getMe
 };

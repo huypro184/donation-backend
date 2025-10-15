@@ -1,4 +1,4 @@
-const { registerUser, loginUser } = require('../services/authService');
+const { registerUser, loginUser, getMe } = require('../services/authService');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const getCookieOptions = () => {
@@ -35,7 +35,18 @@ const login = asyncHandler(async (req, res) => {
     });
 });
 
+const me = asyncHandler(async (req, res) => {
+    const result = await getMe(req.user.id);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'User retrieved successfully',
+        data: result
+    });
+});
+
 module.exports = {
     register,
-    login
+    login,
+    me
 };

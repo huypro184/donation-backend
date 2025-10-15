@@ -4,6 +4,8 @@ const connectDB = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 
+const errorHandler = require('./middlewares/errorHandler');
+
 const app = express();
 const PORT = process.env.PORT;
 
@@ -18,6 +20,12 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+
+app.all(/.*/, (req, res) => {
+  throw new Error('Route not found');
+});
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
