@@ -67,7 +67,7 @@ const getMe = async (currentUser) => {
     throw new AppError('User not found', 404);
   }
 
-  return { user };
+  return user;
 };
 
 module.exports = {
