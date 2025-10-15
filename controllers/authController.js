@@ -36,7 +36,7 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const me = asyncHandler(async (req, res) => {
-    const result = await getMe(req.user.id);
+    const result = await getMe(req.user);
 
     res.status(200).json({
         status: 'success',

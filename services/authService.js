@@ -61,8 +61,8 @@ const loginUser = async (loginData) => {
   return { user: userResponse, token };
 };
 
-const getMe = async (userId) => {
-  const user = await User.findById(userId).select('-password');
+const getMe = async (currentUser) => {
+  const user = await User.findById(currentUser._id).select('-password');
   if (!user) {
     throw new AppError('User not found', 404);
   }
