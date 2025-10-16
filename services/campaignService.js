@@ -35,4 +35,23 @@ const createCampaign = async (campaignData, userId) => {
   return newCampaign;
 };
 
-module.exports = { createCampaign };
+const approveCampaign = async (campaignId) => {
+  const campaign = await Campaign.findById(campaignId);
+  if (!campaign) {
+    throw new AppError('Campaign not found', 404);
+  }
+
+  if (campaign.status !== 'pending') {
+    throw new AppError('Only pending campaigns can be approved', 400);
+  }
+
+  campaign.status = 'approved';
+  await campaign.save();
+
+  return campaign;
+};
+
+module.exports = { 
+  createCampaign,
+  approveCampaign
+};

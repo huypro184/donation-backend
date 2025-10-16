@@ -1,4 +1,4 @@
-const { createCampaign } = require('../services/campaignService');
+const { createCampaign, approveCampaign } = require('../services/campaignService');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const createCampaignController = asyncHandler(async (req, res) => {
@@ -14,6 +14,17 @@ const createCampaignController = asyncHandler(async (req, res) => {
   });
 });
 
+const approveCampaignController = asyncHandler(async (req, res) => {
+  const approvedCampaign = await approveCampaign(req.params.id);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Campaign approved successfully',
+    data: approvedCampaign
+  });
+});
+
 module.exports = {
-  createCampaignController
+  createCampaignController,
+  approveCampaignController
 };
