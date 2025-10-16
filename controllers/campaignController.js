@@ -3,6 +3,7 @@ const { asyncHandler } = require('../utils/asyncHandler');
 
 const createCampaignController = asyncHandler(async (req, res) => {
   const campaignData = req.body;
+  campaignData.imageUrl = req.file ? req.file.path : undefined;
   const userId = req.user._id;
 
   const newCampaign = await createCampaign(campaignData, userId);
