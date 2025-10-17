@@ -51,7 +51,43 @@ const approveCampaign = async (campaignId) => {
   return campaign;
 };
 
-module.exports = { 
+const updateCampaign = async (campaignId, userId, updateData) => {
+  const campaign = await Campaign.findById(campaignId);
+  if (!campaign) {
+    throw new AppError('Campaign not found', 404);
+  }
+
+  if (userId.toString() !== campaign.createdBy.toString()) {
+    throw new AppError('Not authorized to update this campaign', 403);
+  }
+
+  if(!updateData || Object.keys(updateData).length === 0) {
+    throw new AppError('Please provide data to update', 400);
+  }
+
+  const newStart = updateData.startDate !== undefined ? new Date(updateData.startDate) : campaign.startDate;
+  const newEnd = updateData.endDate !== undefined ? new Date(updateData.endDate) : campaign.endDate;
+
+  if ((updateData.startDate !== undefined && isNaN(newStart.getTime())) ||
+      (updateData.endDate !== undefined && isNaN(newEnd.getTime()))) {
+    throw new AppError('Invalid date format', 400);
+  }
+
+  if (newStart && newEnd && newStart >= newEnd) {
+    throw new AppError('End date must be after start date', 400);
+  }
+
+  if (updateData.description !== undefined) campaign.description = updateData.description;
+  if (updateData.imageUrl !== undefined) campaign.imageUrl = updateData.imageUrl;
+  if (updateData.startDate !== undefined) campaign.startDate = newStart;
+  if (updateData.endDate !== undefined) campaign.endDate = newEnd;
+  await campaign.save();
+
+  return campaign;
+};
+
+module.exports = {
   createCampaign,
-  approveCampaign
+  approveCampaign,
+  updateCampaign
 };
