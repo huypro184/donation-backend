@@ -1,4 +1,4 @@
-const { createCampaign, approveCampaign, updateCampaign } = require('../services/campaignService');
+const { createCampaign, approveCampaign, updateCampaign, deleteCampaign } = require('../services/campaignService');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const createCampaignController = asyncHandler(async (req, res) => {
@@ -40,8 +40,22 @@ const updateCampaignController = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteCampaignController = asyncHandler(async (req, res) => {
+  const campaignId = req.params.id;
+  const userId = req.user._id;
+
+  const deletedCampaign = await deleteCampaign(campaignId, userId);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Campaign deleted successfully',
+    data: deletedCampaign
+  });
+});
+
 module.exports = {
   createCampaignController,
   approveCampaignController,
-  updateCampaignController
+  updateCampaignController,
+  deleteCampaignController
 };

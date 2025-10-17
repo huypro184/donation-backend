@@ -86,8 +86,26 @@ const updateCampaign = async (campaignId, userId, updateData) => {
   return campaign;
 };
 
+const deleteCampaign = async (campaignId, userId) => {
+  const campaign = await Campaign.findById(campaignId);
+  if (!campaign) {
+    throw new AppError('Campaign not found', 404);
+  }
+
+  if (userId.toString() !== campaign.createdBy.toString()) {
+    throw new AppError('Not authorized to delete this campaign', 403);
+  }
+
+  if (campaign.collectedAmount > 0) {
+    throw new AppError('Cannot delete a campaign that has received donations', 400);
+  }
+  await Campaign.findByIdAndDelete(campaignId);
+  
+  return campaign;
+};
 module.exports = {
   createCampaign,
   approveCampaign,
-  updateCampaign
+  updateCampaign,
+  deleteCampaign
 };
