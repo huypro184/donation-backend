@@ -59,6 +59,27 @@ const approveCampaign = async (campaignId) => {
   }
 };
 
+
+const rejectCampaign = async (campaignId, data) => {
+  try {
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+      throw new AppError('Campaign not found', 404);
+    }
+
+    if (campaign.status !== 'pending') {
+      throw new AppError('Only pending campaigns can be rejected', 400);
+    }
+
+    campaign.status = 'rejected';
+    await campaign.save();
+
+    return campaign;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const updateCampaign = async (campaignId, userId, updateData) => {
   try {
     const campaign = await Campaign.findById(campaignId);
@@ -136,6 +157,7 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
     const skip = (page - 1) * limit;
 
     const campaigns = await Campaign.find(filter)
+      .select('-rejectReason -status')
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -146,7 +168,7 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
       total,
       currentPage: Number(page),
       totalPages: Math.ceil(total / limit),
-      data: campaigns,
+      data: campaigns
     };
   } catch (error) {
     throw error;
@@ -155,9 +177,14 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
 
 const getCampaignDetail = async (campaignId) => {
   try {
-    const campaign = await Campaign.findById(campaignId).populate('createdBy', 'name email');
+    const campaign = await Campaign.findOne({
+      _id: campaignId,
+      status: 'approved'
+    })
+      .select('-rejectReason -status')
+      .populate('createdBy', 'name email');
     if (!campaign) {
-      throw new AppError('Campaign not found', 404);
+      throw new AppError('Campaign not found or not approved', 404);
     }
 
     return campaign;
@@ -172,5 +199,6 @@ module.exports = {
   updateCampaign,
   deleteCampaign,
   getCampaignDetail,
-  getApprovedCampaigns
+  getApprovedCampaigns,
+  rejectCampaign
 };
