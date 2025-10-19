@@ -153,10 +153,24 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
   }
 };
 
+const getCampaignDetail = async (campaignId) => {
+  try {
+    const campaign = await Campaign.findById(campaignId).populate('createdBy', 'name email');
+    if (!campaign) {
+      throw new AppError('Campaign not found', 404);
+    }
+
+    return campaign;
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createCampaign,
   approveCampaign,
   updateCampaign,
   deleteCampaign,
+  getCampaignDetail,
   getApprovedCampaigns
 };

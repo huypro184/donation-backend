@@ -1,4 +1,4 @@
-const { createCampaign, approveCampaign, updateCampaign, deleteCampaign, getApprovedCampaigns } = require('../services/campaignService');
+const { createCampaign, approveCampaign, updateCampaign, deleteCampaign, getApprovedCampaigns, getCampaignDetail } = require('../services/campaignService');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const createCampaignController = asyncHandler(async (req, res) => {
@@ -63,10 +63,22 @@ const getApprovedCampaignsController = asyncHandler(async (req, res) => {
   });
 });
 
+const getCampaignDetailController = asyncHandler(async (req, res) => {
+  const campaignId = req.params.id;
+  const campaign = await getCampaignDetail(campaignId);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Campaign details retrieved successfully',
+    data: campaign
+  });
+});
+
 module.exports = {
   createCampaignController,
   approveCampaignController,
   updateCampaignController,
   deleteCampaignController,
+  getCampaignDetailController,
   getApprovedCampaignsController
 };
