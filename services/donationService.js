@@ -1,4 +1,6 @@
 const Donation = require('../models/Donation');
+const { sendMail } = require('../utils/mail');
+const User = require('../models/User');
 const Campaign = require('../models/Campaign');
 const AppError = require('../utils/AppError');
 
@@ -43,6 +45,7 @@ const createDonation = async (donationData) => {
     return newDonation;
 
   } catch (error) {
+    console.error(error);
     throw new AppError('Error creating donation', 500);
   }
 };
