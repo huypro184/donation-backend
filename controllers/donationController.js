@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const { createDonation, myDonations } = require('../services/donationService');
+const { createDonation, myDonations, getDonationsByCampaign } = require('../services/donationService');
 
 const createDonationController = asyncHandler(async (req, res) => {
   const donationData = req.body;
@@ -26,7 +26,20 @@ const myDonationsController = asyncHandler(async (req, res) => {
   });
 });
 
+const getDonationsByCampaignController = asyncHandler(async (req, res) => {
+  const { campaignId } = req.params;
+  const { limit, page } = req.query;
+  const donations = await getDonationsByCampaign({ campaignId, limit, page });
+  res.status(200).json({
+    status: 'success',
+    data: {
+      donations
+    }
+  });
+});
+
 module.exports = {
   createDonationController,
-  myDonationsController
+  myDonationsController,
+  getDonationsByCampaignController
 };

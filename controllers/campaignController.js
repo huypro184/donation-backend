@@ -75,8 +75,8 @@ const getCampaignDetailController = asyncHandler(async (req, res) => {
 });
 
 const getAllCampaignsController = asyncHandler(async (req, res) => {
-  const { limit, page } = req.query;
-  const campaigns = await getAllCampaigns({ limit, page });
+  // const { limit, page } = req.query;
+  const campaigns = await getAllCampaigns();
 
   res.status(200).json({
     status: 'success',

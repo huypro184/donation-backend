@@ -69,7 +69,28 @@ const myDonations = async ({ donorId, limit = 10, page = 1 } = {}) => {
   }
 };
 
+const getDonationsByCampaign = async ({ campaignId, limit = 10, page = 1 }) => {
+  try {
+    const donations = await Donation.find({ campaignId })
+      .populate('donorId', 'name email')
+      .limit(limit)
+      .skip((page - 1) * limit);
+
+    const total = await Donation.countDocuments({ campaignId });
+    return {
+      total,
+      currentPage: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+      data: donations
+    };
+  } catch (error) {
+    throw new AppError('Error fetching donations by campaign', 500);
+  }
+};
+
 module.exports = {
   createDonation,
-  myDonations
+  myDonations,
+  getDonationsByCampaign
 };
