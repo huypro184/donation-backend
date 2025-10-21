@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const { createDonation } = require('../services/donationService');
+const { createDonation, myDonations } = require('../services/donationService');
 
 const createDonationController = asyncHandler(async (req, res) => {
   const donationData = req.body;
@@ -14,6 +14,19 @@ const createDonationController = asyncHandler(async (req, res) => {
   });
 });
 
+const myDonationsController = asyncHandler(async (req, res) => {
+  const donorId = req.user._id;
+  const { limit, page } = req.query;
+  const donations = await myDonations({ donorId, limit, page });
+  res.status(200).json({
+    status: 'success',
+    data: {
+      donations
+    }
+  });
+});
+
 module.exports = {
-  createDonationController
+  createDonationController,
+  myDonationsController
 };

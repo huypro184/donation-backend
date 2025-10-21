@@ -167,6 +167,39 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
     return {
       total,
       currentPage: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+      data: campaigns
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getAllCampaigns = async ({ status, category, sortBy = 'latest', limit = 10, page = 1 } = {}) => {
+  try {
+    const filter = {};
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+
+    let sort = {};
+    if (sortBy === 'latest') {
+      sort = { createdAt: -1 };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const campaigns = await Campaign.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Campaign.countDocuments(filter);
+
+    return {
+      total,
+      currentPage: Number(page),
+      limit: Number(limit),
       totalPages: Math.ceil(total / limit),
       data: campaigns
     };
@@ -200,5 +233,6 @@ module.exports = {
   deleteCampaign,
   getCampaignDetail,
   getApprovedCampaigns,
-  rejectCampaign
+  rejectCampaign,
+  getAllCampaigns
 };

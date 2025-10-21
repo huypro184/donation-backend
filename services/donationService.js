@@ -37,19 +37,39 @@ const createDonation = async (donationData) => {
     if (donor && donor.email) {
     await sendMail({
         to: donor.email,
-        subject: 'Cảm ơn bạn đã quyên góp!',
-        text: `Bạn đã quyên góp thành công ${amount} cho chiến dịch "${campaign.title}". Xin chân thành cảm ơn!`
+        subject: 'Thank you for your donation!',
+        text: `Dear ${donor.name || 'Donor'},\n\nThank you for your generous donation of ${amount} to the campaign "${campaign.title}". Your support makes a real difference!\n\nBest regards,\nDonation Team`
     });
     }
 
     return newDonation;
 
   } catch (error) {
-    console.error(error);
     throw new AppError('Error creating donation', 500);
   }
 };
 
+const myDonations = async ({ donorId, limit = 10, page = 1 } = {}) => {
+  try {
+    const donations = await Donation.find({ donorId })
+      .populate('campaignId', 'title description')
+      .limit(limit)
+      .skip((page - 1) * limit);
+
+    total = await Donation.countDocuments({ donorId });
+    return {
+      total,
+      currentPage: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+      data: donations
+    };
+  } catch (error) {
+    throw new AppError('Error fetching donations', 500);
+  }
+};
+
 module.exports = {
-  createDonation
+  createDonation,
+  myDonations
 };

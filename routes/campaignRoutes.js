@@ -1,7 +1,7 @@
 const express = require('express');
 const upload = require('../middlewares/upload');
 const { protect, restrictTo } = require('../middlewares/auth');
-const { createCampaignController, approveCampaignController, updateCampaignController, deleteCampaignController, getApprovedCampaignsController, getCampaignDetailController } = require('../controllers/campaignController');
+const { createCampaignController, approveCampaignController, updateCampaignController, deleteCampaignController, getApprovedCampaignsController, getCampaignDetailController, getAllCampaignsController } = require('../controllers/campaignController');
 
 const router = express.Router();
 
@@ -11,5 +11,6 @@ router.patch('/:id', protect, restrictTo('admin', 'organizer'), upload.single('i
 router.delete('/:id', protect, restrictTo('admin', 'organizer'), deleteCampaignController);
 router.get('/approved', getApprovedCampaignsController);
 router.get('/:id', getCampaignDetailController);
+router.get('/', protect, restrictTo('admin'), getAllCampaignsController);
 
 module.exports = router;
