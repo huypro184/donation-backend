@@ -71,7 +71,9 @@ const rejectCampaign = async (campaignId, data) => {
       throw new AppError('Only pending campaigns can be rejected', 400);
     }
 
+    campaign.rejectReason = data.rejectReason;
     campaign.status = 'rejected';
+
     await campaign.save();
 
     return campaign;
