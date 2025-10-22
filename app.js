@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const campaignRoutes = require('./routes/campaignRoutes');
 const donationRouter = require('./routes/donationRouter');
+const reportRoutes = require('./routes/reportRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -24,6 +25,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/donations', donationRouter);
+app.use('/api/reports', reportRoutes);
 
 app.all(/.*/, (req, res) => {
   throw new Error('Route not found');
