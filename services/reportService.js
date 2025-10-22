@@ -18,6 +18,32 @@ const getTop5Campaigns = async ({ limit = 5 } = {}) => {
   }
 };
 
+const getOverview = async () => {
+  try {
+    const [campaignCount, donationCount, userCount, totalAgg] = await Promise.all([
+      Campaign.countDocuments(),
+      Donation.countDocuments(),
+      User.countDocuments(),
+      Donation.aggregate([
+        { $match: { status: 'success' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+
+    const totalDonated = (totalAgg[0] && totalAgg[0].total) ? totalAgg[0].total : 0;
+
+    return {
+      campaignCount,
+      donationCount,
+      userCount,
+      totalDonated
+    };
+  } catch (error) {
+    throw new AppError('Error fetching overview stats', 500);
+  }
+};
+
 module.exports = {
-  getTop5Campaigns
+  getTop5Campaigns,
+  getOverview
 };
