@@ -1,7 +1,6 @@
 const Campaign = require('../models/Campaign');
 const Donation = require('../models/Donation');
 const User = require('../models/User');
-const AppError = require('../utils/AppError');
 
 const getTop5Campaigns = async ({ limit = 5 } = {}) => {
   try {
@@ -39,7 +38,7 @@ const getOverview = async () => {
       totalDonated
     };
   } catch (error) {
-    throw new AppError('Error fetching overview stats', 500);
+    throw error;
   }
 };
 

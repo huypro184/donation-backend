@@ -5,7 +5,7 @@ const createCampaign = async (campaignData, userId) => {
   try {
     const { title, description, category, goalAmount, startDate, endDate, imageUrl } = campaignData;
 
-    if (!title || !description || !category || !goalAmount || !startDate || !endDate || !imageUrl) {
+    if (!title || !description || !category || !goalAmount || !startDate || !endDate) {
       throw new AppError('Please provide all required fields', 400);
     }
 

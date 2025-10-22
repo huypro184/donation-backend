@@ -33,6 +33,16 @@ const createDonation = async (donationData) => {
 
     await campaign.save();
 
+    const goal = campaign.goalAmount;
+    if (campaign.collectedAmount >= goal) {
+        const organizer = await User.findById(campaign.createdBy);
+        await sendMail({
+            to: organizer.email,
+            subject: 'Campaign Goal Reached!',
+            text: `Congratulations! Your campaign "${campaign.title}" has reached its goal of ${goal}. Keep up the great work!`
+        });
+    }
+
     const donor = await User.findById(donorId);
     if (donor && donor.email) {
     await sendMail({
@@ -45,7 +55,7 @@ const createDonation = async (donationData) => {
     return newDonation;
 
   } catch (error) {
-    throw new AppError('Error creating donation', 500);
+    throw error;
   }
 };
 
@@ -65,7 +75,7 @@ const myDonations = async ({ donorId, limit = 10, page = 1 } = {}) => {
       data: donations
     };
   } catch (error) {
-    throw new AppError('Error fetching donations', 500);
+    throw error;
   }
 };
 
@@ -85,7 +95,7 @@ const getDonationsByCampaign = async ({ campaignId, limit = 10, page = 1 }) => {
       data: donations
     };
   } catch (error) {
-    throw new AppError('Error fetching donations by campaign', 500);
+    throw error;
   }
 };
 
