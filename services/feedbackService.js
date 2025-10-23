@@ -24,10 +24,19 @@ const analyzeSentiment = async (text) => {
 };
 
 const submitFeedback = async (feedbackData) => {
-  try {
+  try { 
     const { userId, campaignId, comment } = feedbackData;
     if (!userId || !campaignId || !comment) {
       throw new AppError('Please provide all required fields', 400);
+    }
+
+    if (comment.length > 500) {
+      throw new AppError('Comment is too long (max 500 characters)', 400);
+    }
+
+    const feedbackCount = await Feedback.countDocuments({ userId, campaignId });
+    if (feedbackCount >= 3) {
+      throw new AppError('You have reached the maximum number of feedbacks for this campaign', 400);
     }
 
     const sentiment = await analyzeSentiment(comment);
@@ -45,8 +54,34 @@ const submitFeedback = async (feedbackData) => {
   }
 };
 
+const getFeedbackByCampaign = async (campaignId, { limit = 10, page = 1 } = {}) => {
+  try {
+    const feedback = await Feedback.find({ campaignId })
+      .populate('userId', 'name email')
+      .limit(limit)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    if (feedback.length === 0) {
+      throw new AppError('No feedback found for this campaign', 404);
+    }
+    const total = await Feedback.countDocuments({ campaignId });
+
+    return {
+      total,
+      currentPage: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+      data: feedback
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+  
 module.exports = {
-  submitFeedback
+  submitFeedback,
+  getFeedbackByCampaign
 };
 
 

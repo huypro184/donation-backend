@@ -1,9 +1,10 @@
 const express = require('express');
 const { protect, restrictTo } = require('../middlewares/auth');
-const { submitFeedback } = require('../controllers/feedbackController');
+const { submitFeedbackController, getFeedbackByCampaignController} = require('../controllers/feedbackController');
 
 const router = express.Router();
 
-router.post('/', protect, submitFeedback);
+router.post('/', protect, submitFeedbackController);
+router.get('/:campaignId', protect, getFeedbackByCampaignController);
 
 module.exports = router;

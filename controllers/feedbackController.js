@@ -1,15 +1,14 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const feedbackService = require('../services/feedbackService');
+const { getFeedbackByCampaign, submitFeedback } = require('../services/feedbackService');
 
-const submitFeedback = asyncHandler(async (req, res) => {
-
+const submitFeedbackController = asyncHandler(async (req, res) => {
     const feedbackData = {
         userId: req.user.id,
         campaignId: req.body.campaignId,
         comment: req.body.comment
     };
 
-    const feedback = await feedbackService.submitFeedback(feedbackData);
+    const feedback = await submitFeedback(feedbackData);
     res.status(201).json({
         status: 'success',
         data: {
@@ -18,6 +17,18 @@ const submitFeedback = asyncHandler(async (req, res) => {
     });
 });
 
+const getFeedbackByCampaignController = asyncHandler(async (req, res) => {
+    const { campaignId } = req.params;
+    const { limit, page } = req.query;
+
+    const feedback = await getFeedbackByCampaign(campaignId, { limit, page });
+    res.status(200).json({
+        status: 'success',
+        data: feedback
+    });
+});
+
 module.exports = {
-  submitFeedback
+  submitFeedbackController,
+  getFeedbackByCampaignController
 };

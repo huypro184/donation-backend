@@ -26,6 +26,10 @@ const campaignSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
   },
+  comments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Feedback'
+  }],
   rejectReason: {
     type: String,
     default: '',
