@@ -1,5 +1,14 @@
 const Campaign = require('../models/Campaign');
 const AppError = require('../utils/AppError');
+const redisClient = require('../config/redis');
+
+const invalidateCampaignCache = async () => {
+  const keys = await redisClient.keys('campaign:*');
+  if (keys.length > 0) {
+    await redisClient.del(keys);
+  }
+};
+
 
 const createCampaign = async (campaignData, userId) => {
   try {
@@ -33,6 +42,8 @@ const createCampaign = async (campaignData, userId) => {
       createdBy: userId
     });
 
+    await invalidateCampaignCache();
+
     return newCampaign;
   } catch (error) {
     throw error;
@@ -52,6 +63,8 @@ const approveCampaign = async (campaignId) => {
 
     campaign.status = 'approved';
     await campaign.save();
+
+    await invalidateCampaignCache();
 
     return campaign;
   } catch (error) {
@@ -75,6 +88,8 @@ const rejectCampaign = async (campaignId, data) => {
     campaign.status = 'rejected';
 
     await campaign.save();
+
+    await invalidateCampaignCache();
 
     return campaign;
   } catch (error) {
@@ -115,6 +130,8 @@ const updateCampaign = async (campaignId, userId, updateData) => {
     if (updateData.endDate !== undefined) campaign.endDate = newEnd;
     await campaign.save();
 
+    await invalidateCampaignCache();
+
     return campaign;
   } catch (error) {
     throw error;
@@ -137,6 +154,8 @@ const deleteCampaign = async (campaignId, userId) => {
     }
     await Campaign.findByIdAndDelete(campaignId);
 
+    await invalidateCampaignCache();
+
     return campaign;
   } catch (error) {
     throw error;
@@ -145,6 +164,10 @@ const deleteCampaign = async (campaignId, userId) => {
 
 const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, page = 1 } = {}) => {
   try {
+    const cacheKey = `campaign:approved:category=${category || 'all'}:sort=${sortBy}:page=${page}:limit=${limit}`;
+    const cached = await redisClient.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
     const filter = { status: 'approved' };
 
     if (category) {
@@ -166,13 +189,16 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
 
     const total = await Campaign.countDocuments(filter);
 
-    return {
+    const result = {
       total,
       currentPage: Number(page),
       limit: Number(limit),
       totalPages: Math.ceil(total / limit),
       data: campaigns
     };
+
+    await redisClient.set(cacheKey, JSON.stringify(result), { EX: 300 });
+    return result;
   } catch (error) {
     throw error;
   }
@@ -180,6 +206,10 @@ const getApprovedCampaigns = async ({ category, sortBy = 'latest', limit = 10, p
 
 const getAllCampaigns = async ({ status, category, sortBy = 'latest', limit = 10, page = 1 } = {}) => {
   try {
+    const cacheKey = `campaign:all:status=${status || 'all'}:category=${category || 'all'}:sort=${sortBy}:page=${page}:limit=${limit}`;
+    const cached = await redisClient.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
@@ -197,14 +227,16 @@ const getAllCampaigns = async ({ status, category, sortBy = 'latest', limit = 10
       .limit(limit);
 
     const total = await Campaign.countDocuments(filter);
-
-    return {
+    const result = {
       total,
       currentPage: Number(page),
       limit: Number(limit),
       totalPages: Math.ceil(total / limit),
       data: campaigns
     };
+
+    await redisClient.set(cacheKey, JSON.stringify(result), { EX: 300 });
+    return result;
   } catch (error) {
     throw error;
   }
@@ -212,6 +244,13 @@ const getAllCampaigns = async ({ status, category, sortBy = 'latest', limit = 10
 
 const getCampaignDetail = async (campaignId) => {
   try {
+
+    const cacheKey = `campaign:${campaignId}`;
+    const cachedCampaign = await redisClient.get(cacheKey);
+    if (cachedCampaign) {
+      return JSON.parse(cachedCampaign);
+    }
+
     const campaign = await Campaign.findOne({
       _id: campaignId,
       status: 'approved'
@@ -221,6 +260,8 @@ const getCampaignDetail = async (campaignId) => {
     if (!campaign) {
       throw new AppError('Campaign not found or not approved', 404);
     }
+
+    await redisClient.set(cacheKey, JSON.stringify(campaign), { EX: 300 });
 
     return campaign;
   } catch (error) {
