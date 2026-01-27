@@ -12,7 +12,7 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 connectDB();
 
@@ -22,6 +22,26 @@ app.use(express.json());
 // Route test
 app.get('/', (req, res) => {
   res.send('Backend is running!');
+});
+
+app.get('/payment-result', (req, res) => {
+    const { resultCode, message, transId } = req.query;
+    if (resultCode == '0') {
+        res.send(`
+            <div style="text-align: center; padding-top: 50px; font-family: sans-serif;">
+                <h1 style="color: green;">✅ THANH TOÁN THÀNH CÔNG!</h1>
+                <p>Mã giao dịch: <b>${transId}</b></p>
+                <a href="/" style="color: blue;">Quay về App</a>
+            </div>
+        `);
+    } else {
+        res.send(`
+            <div style="text-align: center; padding-top: 50px; font-family: sans-serif;">
+                <h1 style="color: red;">❌ THANH TOÁN THẤT BẠI</h1>
+                <p>Lý do: ${message}</p>
+            </div>
+        `);
+    }
 });
 
 app.use('/api/auth', authRoutes);

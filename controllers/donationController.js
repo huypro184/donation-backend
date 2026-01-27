@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const { createDonation, myDonations, getDonationsByCampaign } = require('../services/donationService');
+const { createDonation, myDonations, getDonationsByCampaign, updatePaymentStatus } = require('../services/donationService');
 
 const createDonationController = asyncHandler(async (req, res) => {
   const donationData = req.body;
@@ -9,9 +9,25 @@ const createDonationController = asyncHandler(async (req, res) => {
   res.status(201).json({
     status: 'success',
     data: {
-      donation: newDonation
+      donation: newDonation.donation,
+      payUrl: newDonation.payUrl
     }
   });
+});
+
+const momoWebhookController = asyncHandler(async (req, res) => {
+  const { orderId, resultCode } = req.body;
+
+  console.log(">> MOMO WEBHOOK RECEIVED:", req.body);
+
+  // resultCode = 0 nghĩa là Giao dịch thành công
+  if (resultCode == 0) {
+      await updatePaymentStatus(orderId);
+      console.log(` Donation ${orderId} updated successfully!`);
+  } else {
+      console.log(` Donation ${orderId} failed or cancelled.`);
+  }
+  res.status(204).send();
 });
 
 const myDonationsController = asyncHandler(async (req, res) => {
@@ -41,5 +57,6 @@ const getDonationsByCampaignController = asyncHandler(async (req, res) => {
 module.exports = {
   createDonationController,
   myDonationsController,
-  getDonationsByCampaignController
+  getDonationsByCampaignController,
+  momoWebhookController
 };
