@@ -5,7 +5,12 @@ const createDonationController = asyncHandler(async (req, res) => {
   const donationData = req.body;
   donationData.donorId = req.user._id;
 
-  const newDonation = await createDonation(donationData);
+  let ipAddr = req.headers['x-forwarded-for'] ||
+               req.connection.remoteAddress ||
+               req.socket.remoteAddress ||
+               req.connection.socket.remoteAddress;
+
+  const newDonation = await createDonation(donationData, ipAddr);
   res.status(201).json({
     status: 'success',
     data: {
@@ -28,6 +33,25 @@ const momoWebhookController = asyncHandler(async (req, res) => {
       console.log(` Donation ${orderId} failed or cancelled.`);
   }
   res.status(204).send();
+});
+
+const vnpayIpnController = asyncHandler(async (req, res) => {
+    try {
+        const vnp_Params = req.query; // VNPAY bắn GET query params
+        console.log(">> VNPAY IPN:", vnp_Params);
+
+        const result = await verifyVnPayIpn(vnp_Params);
+        
+        if (result) {
+            res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
+        } else {
+            // Trả về cho VNPAY biết là xử lý xong (dù thất bại)
+            res.status(200).json({ RspCode: '00', Message: 'Confirm Success' }); 
+        }
+    } catch (error) {
+        console.error("VNPAY IPN Error:", error);
+        res.status(200).json({ RspCode: '97', Message: 'Invalid Checksum' });
+    }
 });
 
 const myDonationsController = asyncHandler(async (req, res) => {
@@ -58,5 +82,6 @@ module.exports = {
   createDonationController,
   myDonationsController,
   getDonationsByCampaignController,
-  momoWebhookController
+  momoWebhookController,
+  vnpayIpnController
 };

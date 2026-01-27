@@ -25,20 +25,49 @@ app.get('/', (req, res) => {
 });
 
 app.get('/payment-result', (req, res) => {
-    const { resultCode, message, transId } = req.query;
-    if (resultCode == '0') {
+    const query = req.query;
+    let isSuccess = false;
+    let orderId = '';
+    let message = '';
+
+    // 1. Kiểm tra xem là MoMo hay VNPay
+    if (query.partnerCode === 'MOMO') {
+        // --- XỬ LÝ MOMO ---
+        isSuccess = query.resultCode == '0';
+        orderId = query.orderId;
+        message = query.message || (isSuccess ? 'Thanh toán thành công' : 'Thanh toán thất bại');
+    } 
+    else if (query.vnp_TmnCode) {
+        // --- XỬ LÝ VNPAY ---
+        isSuccess = query.vnp_ResponseCode == '00';
+        orderId = query.vnp_TxnRef;
+        
+        if (isSuccess) {
+            message = "Giao dịch thành công qua VNPay";
+        } else {
+            // Mapping mã lỗi VNPay (nếu cần chi tiết)
+            message = "Giao dịch VNPay thất bại hoặc bị hủy";
+        }
+    }
+
+    // 2. Hiển thị giao diện chung
+    if (isSuccess) {
         res.send(`
-            <div style="text-align: center; padding-top: 50px; font-family: sans-serif;">
-                <h1 style="color: green;">✅ THANH TOÁN THÀNH CÔNG!</h1>
-                <p>Mã giao dịch: <b>${transId}</b></p>
-                <a href="/" style="color: blue;">Quay về App</a>
+            <div style="text-align: center; padding-top: 50px; font-family: Arial, sans-serif;">
+                <h1 style="color: green; font-size: 24px;">✅ THANH TOÁN THÀNH CÔNG!</h1>
+                <p>Cảm ơn bạn đã quyên góp.</p>
+                <p>Mã đơn hàng: <b>${orderId}</b></p>
+                <p>Thông báo: ${message}</p>
+                <a href="/" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Quay về Trang chủ</a>
             </div>
         `);
     } else {
         res.send(`
-            <div style="text-align: center; padding-top: 50px; font-family: sans-serif;">
-                <h1 style="color: red;">❌ THANH TOÁN THẤT BẠI</h1>
+            <div style="text-align: center; padding-top: 50px; font-family: Arial, sans-serif;">
+                <h1 style="color: red; font-size: 24px;">❌ THANH TOÁN THẤT BẠI</h1>
+                <p>Mã đơn hàng: <b>${orderId}</b></p>
                 <p>Lý do: ${message}</p>
+                <a href="/" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">Thử lại</a>
             </div>
         `);
     }

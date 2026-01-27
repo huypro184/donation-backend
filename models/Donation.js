@@ -18,7 +18,7 @@ const donationSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['momo', 'paypal', 'bank'],
+    enum: ['momo', 'vnpay'],
     required: true
   },
   status: {
