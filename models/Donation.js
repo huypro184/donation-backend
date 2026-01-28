@@ -18,7 +18,7 @@ const donationSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['momo', 'vnpay'],
+    enum: ['momo'],
     required: true
   },
   status: {
@@ -26,7 +26,10 @@ const donationSchema = new mongoose.Schema({
     enum: ['pending', 'success', 'failed'],
     default: 'pending'
   },
-  transactionId: String,
+  transactionId: {
+    type: String,
+    unique: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

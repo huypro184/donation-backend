@@ -6,22 +6,6 @@ const AppError = require('../utils/AppError');
 const axios = require('axios');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const moment = require('moment');
-const qs = require('qs');
-
-function sortObject(obj) {
-	let sorted = {};
-	let str = [];
-	let key;
-	for (key in obj){
-		if (obj.hasOwnProperty(key)) str.push(encodeURIComponent(key));
-	}
-	str.sort();
-	for (key = 0; key < str.length; key++) {
-		sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
-	}
-	return sorted;
-}
 
 const createDonation = async (donationData, reqIp) => {
   try {
@@ -32,9 +16,10 @@ const createDonation = async (donationData, reqIp) => {
       throw new AppError('Please provide all required fields', 400);
     }
 
-    const allowedMethods = ['momo', 'vnpay'];
+    // Chỉ cho phép thanh toán qua MoMo (đã bỏ vnpay)
+    const allowedMethods = ['momo'];
     if (!allowedMethods.includes(paymentMethod)) {
-        throw new AppError('Invalid payment method', 400);
+        throw new AppError('Invalid payment method. Only MoMo is supported.', 400);
     }
 
     const campaign = await Campaign.findOne({ _id: campaignId, status: 'approved' });
@@ -42,99 +27,96 @@ const createDonation = async (donationData, reqIp) => {
       throw new AppError('Campaign not found or not approved', 404);
     }
 
-    const date = new Date();
-        const createDate = moment(date).format('YYYYMMDDHHmmss');
-        const orderId = (paymentMethod === 'vnpay' ? '' : 'MOMO') + moment(date).format('DDHHmmss');
+    // Tạo Order ID duy nhất
+    const orderId = `${paymentMethod}_${Date.now()}_${donorId}`;
 
-        const newDonation = await Donation.create({
-            donorId,
-            campaignId,
-            amount,
-            paymentMethod,
-            transactionId: orderId,
-            status: 'pending'
-        });
+    const newDonation = await Donation.create({
+        donorId,
+        campaignId,
+        amount,
+        paymentMethod,
+        transactionId: orderId,
+        status: 'pending'
+    });
 
-        let payUrl = '';
+    let payUrl = '';
 
-    if (paymentMethod === 'vnpay') {
-            const tmnCode = process.env.VNP_TMN_CODE;
-            const secretKey = process.env.VNP_HASH_SECRET;
-            const vnpUrl = process.env.VNP_URL;
-            const returnUrl = process.env.VNP_RETURN_URL;
+    // --- XỬ LÝ MOMO ---
+    if (paymentMethod === 'momo') {
+        const partnerCode = process.env.MOMO_PARTNER_CODE || "MOMO";
+        const accessKey = process.env.MOMO_ACCESS_KEY;
+        const secretKey = process.env.MOMO_SECRET_KEY;
+        const requestId = partnerCode + new Date().getTime();
+        
+        const orderInfo = `Donate to Campaign ${campaign.title.substring(0, 20)}...`;
+        const hostUrl = process.env.HOST_URL || `http://localhost:${process.env.PORT}`;
+        const redirectUrl = `${hostUrl}/payment-result`;
+        const ipnUrl = `${hostUrl}/api/donations/momo-ipn`;
+        const requestType = "captureWallet";
+        const extraData = "";
 
-            let vnp_Params = {};
-            vnp_Params['vnp_Version'] = '2.1.0';
-            vnp_Params['vnp_Command'] = 'pay';
-            vnp_Params['vnp_TmnCode'] = tmnCode;
-            vnp_Params['vnp_Locale'] = 'vn';
-            vnp_Params['vnp_CurrCode'] = 'VND';
-            vnp_Params['vnp_TxnRef'] = orderId;
-            vnp_Params['vnp_OrderInfo'] = `Donate campaign ${campaign.title.substring(0, 20)}`;
-            vnp_Params['vnp_OrderType'] = 'other';
-            vnp_Params['vnp_Amount'] = amount * 100; // VNPay bắt buộc nhân 100
-            vnp_Params['vnp_ReturnUrl'] = returnUrl;
-            vnp_Params['vnp_IpAddr'] = reqIp || '127.0.0.1'; // IP người dùng
-            vnp_Params['vnp_CreateDate'] = createDate;
+        const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
 
-            // B1. Sắp xếp tham số
-            vnp_Params = sortObject(vnp_Params);
+        const signature = crypto.createHmac('sha256', secretKey)
+            .update(rawSignature)
+            .digest('hex');
 
-            // B2. Tạo chữ ký bảo mật
-            const signData = qs.stringify(vnp_Params, { encode: false });
-            const hmac = crypto.createHmac("sha512", secretKey);
-            const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
-
-            // B3. Gắn chữ ký vào param và tạo URL
-            vnp_Params['vnp_SecureHash'] = signed;
-            payUrl = vnpUrl + '?' + qs.stringify(vnp_Params, { encode: false });
-        }
-
-        // --- XỬ LÝ MOMO ---
-        else if (paymentMethod === 'momo') {
-            const partnerCode = process.env.MOMO_PARTNER_CODE || "MOMO";
-            const accessKey = process.env.MOMO_ACCESS_KEY;
-            const secretKey = process.env.MOMO_SECRET_KEY;
-            const requestId = partnerCode + new Date().getTime();
-            
-            const orderInfo = `Donate to Campaign ${campaign.title.substring(0, 20)}...`;
-            const hostUrl = process.env.HOST_URL || `http://localhost:${process.env.PORT}`;
-            const redirectUrl = `${hostUrl}/payment-result`;
-            const ipnUrl = `${hostUrl}/api/donations/momo-ipn`;
-            const requestType = "captureWallet";
-            const extraData = "";
-
-            const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
-
-            const signature = crypto.createHmac('sha256', secretKey)
-                .update(rawSignature)
-                .digest('hex');
-
-            const requestBody = {
-                partnerCode, partnerName: "Donation App", storeId: "MomoTestStore",
-                requestId, amount, orderId, orderInfo, redirectUrl, ipnUrl,
-                lang: 'vi', requestType, autoCapture: true, extraData, signature
-            };
-
-            try {
-                const response = await axios.post(process.env.MOMO_ENDPOINT, requestBody);
-                if (response.data && response.data.payUrl) {
-                    payUrl = response.data.payUrl;
-                } else {
-                    await Donation.findByIdAndDelete(newDonation._id);
-                    throw new AppError('MoMo Error: ' + (response.data.message || 'Unknown'), 400);
-                }
-            } catch (momoError) {
-                await Donation.findByIdAndDelete(newDonation._id);
-                throw new AppError('Connection to Payment Gateway failed', 502);
-            }
-        }
-
-        return {
-            donation: newDonation,
-            payUrl
+        const requestBody = {
+            partnerCode, partnerName: "Donation App", storeId: "MomoTestStore",
+            requestId, amount, orderId, orderInfo, redirectUrl, ipnUrl,
+            lang: 'vi', requestType, autoCapture: true, extraData, signature
         };
 
+        try {
+            const response = await axios.post(process.env.MOMO_ENDPOINT, requestBody);
+            if (response.data && response.data.payUrl) {
+                payUrl = response.data.payUrl;
+            } else {
+                // Nếu MoMo lỗi, xóa đơn pending để tránh rác DB
+                await Donation.findByIdAndDelete(newDonation._id);
+                throw new AppError('MoMo Error: ' + (response.data.message || 'Unknown'), 400);
+            }
+        } catch (momoError) {
+            await Donation.findByIdAndDelete(newDonation._id);
+            throw new AppError('Connection to Payment Gateway failed', 502);
+        }
+    }
+    return { 
+        donation: newDonation, 
+        payUrl 
+    };
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+const verifyMomoSignature = async (momoData) => {
+    try {
+        const {
+            partnerCode, orderId, requestId, amount, orderInfo, orderType, transId,
+            resultCode, message, payType, responseTime, extraData, signature
+        } = momoData;
+
+        const accessKey = process.env.MOMO_ACCESS_KEY;
+        const secretKey = process.env.MOMO_SECRET_KEY;
+
+        const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
+
+        const generatedSignature = crypto.createHmac('sha256', secretKey)
+            .update(rawSignature)
+            .digest('hex');
+
+        if (generatedSignature === signature) {
+            if (resultCode == '0') {
+                return await updatePaymentStatus(orderId);
+            } else {
+                console.log(`MoMo giao dịch thất bại: ${message}`);
+                return null;
+            }
+        } else {
+            throw new Error("Invalid MoMo Signature");
+        }
     } catch (error) {
         throw error;
     }
@@ -151,7 +133,8 @@ const updatePaymentStatus = async (transactionId) => {
         if (!donation) {
             await session.abortTransaction();
             session.endSession();
-            throw new AppError('Donation not found', 404);
+            console.log("Donation not found for update");
+            return null;
         }
 
         // Nếu đơn đã thành công rồi thì dừng luôn (Tránh cộng tiền 2 lần)
@@ -233,5 +216,6 @@ module.exports = {
   createDonation,
   myDonations,
   getDonationsByCampaign,
-  updatePaymentStatus
+  updatePaymentStatus,
+  verifyMomoSignature
 };

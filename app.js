@@ -10,6 +10,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
+const AppError = require('./utils/AppError');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -52,24 +53,7 @@ app.get('/payment-result', (req, res) => {
 
     // 2. Hiển thị giao diện chung
     if (isSuccess) {
-        res.send(`
-            <div style="text-align: center; padding-top: 50px; font-family: Arial, sans-serif;">
-                <h1 style="color: green; font-size: 24px;">✅ THANH TOÁN THÀNH CÔNG!</h1>
-                <p>Cảm ơn bạn đã quyên góp.</p>
-                <p>Mã đơn hàng: <b>${orderId}</b></p>
-                <p>Thông báo: ${message}</p>
-                <a href="/" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Quay về Trang chủ</a>
-            </div>
-        `);
-    } else {
-        res.send(`
-            <div style="text-align: center; padding-top: 50px; font-family: Arial, sans-serif;">
-                <h1 style="color: red; font-size: 24px;">❌ THANH TOÁN THẤT BẠI</h1>
-                <p>Mã đơn hàng: <b>${orderId}</b></p>
-                <p>Lý do: ${message}</p>
-                <a href="/" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">Thử lại</a>
-            </div>
-        `);
+        res.send(`<h1 style="color: green;">${message}</h1><p>Mã đơn hàng: ${orderId}</p>`);
     }
 });
 
@@ -79,8 +63,10 @@ app.use('/api/donations', donationRouter);
 app.use('/api/reports', reportRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
-app.all(/.*/, (req, res) => {
-  throw new Error('Route not found');
+app.all(/(.*)/, (req, res, next) => {
+    console.log(`ERROR 404: [${req.method}] ${req.originalUrl}`);
+    const err = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
+    next(err);
 });
 
 app.use(errorHandler);
