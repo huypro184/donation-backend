@@ -31,27 +31,11 @@ app.get('/payment-result', (req, res) => {
     let orderId = '';
     let message = '';
 
-    // 1. Kiểm tra xem là MoMo hay VNPay
     if (query.partnerCode === 'MOMO') {
-        // --- XỬ LÝ MOMO ---
         isSuccess = query.resultCode == '0';
         orderId = query.orderId;
         message = query.message || (isSuccess ? 'Thanh toán thành công' : 'Thanh toán thất bại');
     } 
-    else if (query.vnp_TmnCode) {
-        // --- XỬ LÝ VNPAY ---
-        isSuccess = query.vnp_ResponseCode == '00';
-        orderId = query.vnp_TxnRef;
-        
-        if (isSuccess) {
-            message = "Giao dịch thành công qua VNPay";
-        } else {
-            // Mapping mã lỗi VNPay (nếu cần chi tiết)
-            message = "Giao dịch VNPay thất bại hoặc bị hủy";
-        }
-    }
-
-    // 2. Hiển thị giao diện chung
     if (isSuccess) {
         res.send(`<h1 style="color: green;">${message}</h1><p>Mã đơn hàng: ${orderId}</p>`);
     }
