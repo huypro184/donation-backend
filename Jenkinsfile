@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // 1. Tên ảnh trên Docker Hub (Sửa lại tên của bạn nếu cần)
-        DOCKER_IMAGE = 'huypro1123/donation-backend'
+        DOCKER_IMAGE = 'giahuy1123/donation-backend'
         
         // 2. ID đăng nhập Docker Hub
         REGISTRY_CRED = 'dockerhub-login'
