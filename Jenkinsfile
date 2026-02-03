@@ -2,33 +2,48 @@ pipeline {
     agent any
 
     environment {
-        // --- CẤU HÌNH CỦA BẠN (SỬA LẠI CHỖ NÀY) ---
-        // Thay 'huypro184' bằng Username trên DOCKER HUB của bạn (không phải GitHub)
-        DOCKER_IMAGE = 'giahuy1123/donation-backend' 
+        // 1. Tên ảnh trên Docker Hub (Sửa lại tên của bạn nếu cần)
+        DOCKER_IMAGE = 'huypro184/donation-backend'
         
-        // ID này phải giống hệt cái ID bạn điền trong mục Credentials lúc nãy
+        // 2. ID đăng nhập Docker Hub
         REGISTRY_CRED = 'dockerhub-login'
+        
+        // 3. Lấy nội dung file .env từ cái "két sắt" bạn vừa tạo
+        ENV_CONTENT = credentials('env-file')
     }
 
     stages {
-        stage('Kiểm tra môi trường') {
-            steps {
-                // In ra phiên bản Docker để chắc chắn máy chủ đã sẵn sàng
-                sh 'docker --version'
-                echo "Bắt đầu build cho image: ${env.DOCKER_IMAGE}"
-            }
-        }
-
         stage('Build & Push Docker') {
             steps {
                 script {
-                    // Lệnh này tương đương: docker build -t huypro184/donation-backend:latest .
-                    def app = docker.build("$DOCKER_IMAGE:latest")
-                    
-                    // Đăng nhập vào Docker Hub và đẩy ảnh lên
+                    echo "--- BẮT ĐẦU BUILD & PUSH ---"
                     docker.withRegistry('', REGISTRY_CRED) {
+                        // Build ảnh
+                        def app = docker.build("$DOCKER_IMAGE:latest")
+                        // Đẩy lên Docker Hub
                         app.push()
                     }
+                }
+            }
+        }
+
+        stage('Deploy to Server') {
+            steps {
+                script {
+                    echo "--- BẮT ĐẦU DEPLOY ---"
+                    
+                    // 1. Tạo file .env thật từ nội dung bí mật
+                    sh 'echo "$ENV_CONTENT" > .env'
+                    
+                    // 2. Kéo code mới nhất từ Docker Hub về
+                    sh "docker compose pull"
+                    
+                    // 3. Tắt cái cũ đi và chạy cái mới lên
+                    // -d: chạy ngầm, --remove-orphans: dọn dẹp container thừa
+                    sh "docker compose up -d --remove-orphans"
+                    
+                    // 4. Xóa ảnh rác cho sạch ổ cứng
+                    sh "docker image prune -f"
                 }
             }
         }
