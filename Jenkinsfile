@@ -8,49 +8,55 @@ pipeline {
     }
 
     stages {
-        stage('Build & Push Docker') {
+        stage('Build & Push') {
             steps {
                 script {
                     docker.withRegistry('', REGISTRY_CRED) {
-                        def app = docker.build("$DOCKER_IMAGE:latest")
-                        app.push()
+                        docker.build("${DOCKER_IMAGE}:latest").push()
                     }
                 }
             }
         }
 
-        stage('Deploy to Server') {
+        stage('Deploy') {
             steps {
                 script {
                     sh 'echo "$ENV_CONTENT" > .env'
-                    sh "docker pull $DOCKER_IMAGE:latest"
+                    sh "docker pull ${DOCKER_IMAGE}:latest"
                     sh "docker stop donation-backend || true"
                     sh "docker rm donation-backend || true"
-                    sh """
-                        docker run -d \
+                    sh '''
+                      docker run -d \
                         --name donation-backend \
                         --restart always \
                         -p 5000:5000 \
                         --env-file .env \
-                        $DOCKER_IMAGE:latest
-                    """
-                    sh "docker image prune -f"
+                        giahuy1123/donation-backend:latest
+                    '''
                 }
             }
         }
+    }
 
-        stage('Test Telegram') {
-            steps {
-                withCredentials([
-                  string(credentialsId: 'telegram-token-moi', variable: 'BOT_TOKEN')
-                ]) {
-                    sh """
-                      curl -s -X POST https://api.telegram.org/bot$BOT_TOKEN/sendMessage \
-                        -d chat_id=6454380469 \
-                        -d text="🧪 Test Telegram từ Jenkins"
-                    """
-                }
-            }
+    post {
+        success {
+            telegram("✅ Deploy SUCCESS")
         }
+        failure {
+            telegram("❌ Deploy FAILED")
+        }
+    }
+}
+
+/******** TELEGRAM ********/
+def telegram(msg) {
+    withCredentials([
+      string(credentialsId: 'telegram-token-moi', variable: 'BOT_TOKEN')
+    ]) {
+        sh '''
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id=6454380469 \
+            -d text="''' + msg + '''"
+        '''
     }
 }
