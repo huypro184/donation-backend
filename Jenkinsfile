@@ -58,4 +58,14 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            // Thay ID của bạn vào đây
+            telegramSend message: "✅ NGON LÀNH!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Trạng thái: Thành công rực rỡ 🚀"'
+        }
+        failure {
+            telegramSend message: "❌ TOANG RỒI!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Lỗi: Vào kiểm tra gấp!"'
+        }
+    }
 }
