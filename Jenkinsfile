@@ -62,11 +62,11 @@ pipeline {
     post {
         success {
             // Thay số ID Telegram của bạn vào chỗ 123456789 (Nhớ để trong dấu nháy đơn)
-            telegramSend message: "✅ NGON LÀNH!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Trạng thái: Thành công rực rỡ 🚀", chatId: '6454380469'
+            telegramSend message: "✅ NGON LÀNH!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Trạng thái: Thành công rực rỡ 🚀", chatId: 6454380469L
         }
         failure {
             // Thay số ID Telegram của bạn vào chỗ 123456789
-            telegramSend message: "❌ TOANG RỒI!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Lỗi: Vào kiểm tra gấp!", chatId: '6454380469'
+            telegramSend message: "❌ TOANG RỒI!\n- Dự án: ${env.JOB_NAME}\n- Build số: #${env.BUILD_NUMBER}\n- Lỗi: Vào kiểm tra gấp!", chatId: 6454380469L
         }
     }
 }
